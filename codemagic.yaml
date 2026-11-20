@@ -10,6 +10,12 @@ workflows:
       - name: Sync Capacitor iOS
         script: |
           npx cap sync ios
-      - name: Build iOS app (unsigned)
+      - name: Install CocoaPods and Build iOS app
         script: |
-          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build
+          cd ios/App
+          if [ -f "Podfile" ]; then
+            pod install
+            xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build
+          else
+            xcodebuild -project App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator build
+          fi
