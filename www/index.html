@@ -1,0 +1,1197 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>توازن - رفيقك الصحي المجاني</title>
+    <!-- تحميل مكتبة Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- تحميل خط Tajawal العربي العصري -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- تحميل أيقونات Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Tajawal', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        amber: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* إخفاء شريط التمرير مع السماح بالتمرير */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* حركة ناعمة لحلقة التقدم الدائرية */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* تأثير ظهور الصفحات */
+        .tab-view {
+            animation: fadeIn 0.25s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="text-slate-800 flex justify-center min-h-screen bg-slate-100">
+
+    <!-- حاوية التطبيق الرئيسية تحاكي شاشة الجوال -->
+    <div class="w-full max-w-md bg-slate-50 min-h-screen shadow-2xl relative flex flex-col overflow-x-hidden pb-24">
+        
+        <!-- الترويسة العلوية (Header) -->
+        <header class="bg-white/90 backdrop-blur-md sticky top-0 z-30 px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center text-white shadow-md shadow-emerald-200">
+                    <i class="ph-fill ph-leaf text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-xl text-slate-800 leading-tight">توازن</h1>
+                    <p class="text-xs text-slate-500 font-medium" id="currentDateText">اليوم</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full border border-emerald-100">
+                    مجاني 100%
+                </span>
+            </div>
+        </header>
+
+        <!-- منطقة التنبيهات المخصصة (بديل alert) -->
+        <div id="toastContainer" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-11/12 max-w-sm pointer-events-none flex flex-col gap-2"></div>
+
+        <!-- المحتوى الرئيسي المتغير حسب التبويب -->
+        <main class="flex-1 p-4 space-y-5">
+
+            <!-- ================= 1. تبويب الرئيسية (Dashboard) ================= -->
+            <section id="view-home" class="tab-view space-y-5">
+                
+                <!-- بطاقة السعرات الرئيسية والماكروز -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-bold text-slate-700 text-base">ملخص السعرات اليومي</h2>
+                        <button onclick="switchTab('stats')" class="text-xs text-emerald-600 font-bold hover:underline flex items-center gap-1">
+                            تعديل الهدف <i class="ph ph-pencil-simple"></i>
+                        </button>
+                    </div>
+
+                    <!-- حلقة السعرات والأرقام الجانبية -->
+                    <div class="flex items-center justify-between my-2">
+                        <!-- المستهلك -->
+                        <div class="text-center flex-1">
+                            <div class="text-xs text-slate-400 font-medium mb-1">المأكول</div>
+                            <div class="font-extrabold text-lg text-slate-800" id="dashEaten">0</div>
+                            <div class="text-[11px] text-slate-400">سعرة</div>
+                        </div>
+
+                        <!-- الحلقة الدائرية -->
+                        <div class="relative w-40 h-40 flex items-center justify-center">
+                            <svg class="w-full h-full" viewBox="0 0 120 120">
+                                <!-- الخلفية الرمادية -->
+                                <circle class="text-slate-100" stroke-width="10" stroke="currentColor" fill="transparent" r="50" cx="60" cy="60"/>
+                                <!-- شريط التقدم -->
+                                <circle id="calorieRing" class="progress-ring__circle text-emerald-500" stroke-width="10" stroke-linecap="round" stroke="currentColor" fill="transparent" r="50" cx="60" cy="60" stroke-dasharray="314.16" stroke-dashoffset="314.16"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span class="text-xs text-slate-400 font-medium" id="remainingLabel">المتبقي</span>
+                                <span class="text-2xl font-extrabold text-slate-800 tracking-tight" id="dashRemaining">2000</span>
+                                <span class="text-[11px] text-emerald-600 font-bold" id="dashGoalText">الهدف: 2000</span>
+                            </div>
+                        </div>
+
+                        <!-- المحروق -->
+                        <div class="text-center flex-1">
+                            <div class="text-xs text-slate-400 font-medium mb-1">المحروق</div>
+                            <div class="font-extrabold text-lg text-orange-500" id="dashBurned">0</div>
+                            <div class="text-[11px] text-slate-400">سعرة</div>
+                        </div>
+                    </div>
+
+                    <!-- أشرطة الماكروز (بروتين، كارب، دهون) -->
+                    <div class="grid grid-cols-3 gap-3 pt-4 mt-2 border-t border-slate-100">
+                        <!-- بروتين -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-slate-600">بروتين</span>
+                                <span class="text-emerald-600"><span id="macroProtein">0</span>/<span id="goalProtein">150</span>g</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                <div id="barProtein" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <!-- كارب -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-slate-600">كارب</span>
+                                <span class="text-blue-600"><span id="macroCarbs">0</span>/<span id="goalCarbs">200</span>g</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                <div id="barCarbs" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <!-- دهون -->
+                        <div class="bg-slate-50 p-2.5 rounded-2xl">
+                            <div class="flex justify-between text-xs font-bold mb-1.5">
+                                <span class="text-slate-600">دهون</span>
+                                <span class="text-amber-600"><span id="macroFat">0</span>/<span id="goalFat">65</span>g</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                <div id="barFat" class="bg-amber-500 h-1.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بطاقة عداد الخطوات التفاعلي -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                                <i class="ph-fill ph-footprints text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base">خطوات اليوم</h3>
+                                <p class="text-xs text-slate-500">حرق تلقائي: <span id="stepsCalories" class="font-bold text-orange-500">0</span> سعرة</p>
+                            </div>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-xl font-extrabold text-slate-800" id="stepsCount">0</span>
+                            <span class="text-xs text-slate-400 block">/ <span id="stepsGoalDisplay">8000</span> خطوة</span>
+                        </div>
+                    </div>
+
+                    <!-- شريط تقدم الخطوات -->
+                    <div class="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
+                        <div id="stepsProgressBar" class="bg-gradient-to-l from-orange-500 to-amber-400 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+
+                    <!-- أزرار إضافة خطوات سريعة -->
+                    <div class="flex gap-2">
+                        <button onclick="addSteps(500)" class="flex-1 py-2.5 px-3 bg-orange-50 hover:bg-orange-100 active:scale-95 text-orange-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1">
+                            <i class="ph-bold ph-plus"></i> 500 خطوة
+                        </button>
+                        <button onclick="addSteps(1000)" class="flex-1 py-2.5 px-3 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold text-xs rounded-xl shadow-sm shadow-orange-200 transition flex items-center justify-center gap-1">
+                            <i class="ph-bold ph-plus"></i> 1000 خطوة
+                        </button>
+                        <button onclick="openCustomStepsModal()" class="py-2.5 px-3 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs rounded-xl transition" title="إدخال رقم مخصص">
+                            <i class="ph-bold ph-pencil-simple"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- بطاقة شرب الماء التفاعلية -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-sky-50 text-sky-500 flex items-center justify-center">
+                                <i class="ph-fill ph-drop text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">شرب الماء</h3>
+                                <p class="text-xs text-slate-400">اضغط على الأكواب للتسجيل (250 مل/كوب)</p>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-sky-600"><span id="waterLiters">0.0</span> / 2.0 لتر</span>
+                    </div>
+
+                    <!-- شبكة الأكواب الثمانية -->
+                    <div id="waterCupsGrid" class="grid grid-cols-8 gap-2 pt-1">
+                        <!-- يتم توليدها بواسطة JS -->
+                    </div>
+                </div>
+
+                <!-- اختصار سريع لإضافة وجبة -->
+                <button onclick="switchTab('meals')" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-bold rounded-2xl shadow-lg shadow-emerald-200/70 transition flex items-center justify-center gap-2">
+                    <i class="ph-bold ph-plus-circle text-xl"></i>
+                    <span>تسجيل وجبة جديدة بالميزان</span>
+                </button>
+
+            </section>
+
+            <!-- ================= 2. تبويب الوجبات والميزان (Meals & Food DB) ================= -->
+            <section id="view-meals" class="tab-view hidden space-y-5">
+                
+                <!-- قسم البحث واختيار الطعام من قاعدة البيانات المحلية -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-extrabold text-lg text-slate-800">قاعدة الأكل وحاسبة الميزان</h2>
+                        <button onclick="toggleCustomFoodForm()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+                            + وجبة مخصصة
+                        </button>
+                    </div>
+
+                    <!-- نموذج إضافة وجبة مخصصة (مخفي افتراضياً) -->
+                    <div id="customFoodForm" class="hidden bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                        <h4 class="font-bold text-sm text-slate-700">إضافة وجبة سريعة يدوياً</h4>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <input type="text" id="custName" placeholder="اسم الوجبة (مثلاً: ساندوتش)" class="col-span-2 px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500">
+                            <select id="custCategory" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm bg-white focus:outline-none focus:border-emerald-500">
+                                <option value="فطور">فطور</option>
+                                <option value="غداء">غداء</option>
+                                <option value="عشاء">عشاء</option>
+                                <option value="سناك">سناك</option>
+                            </select>
+                            <input type="number" id="custCals" placeholder="السعرات الكلية" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500">
+                            <input type="number" id="custProt" placeholder="بروتين (جرام)" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500">
+                            <input type="number" id="custCarb" placeholder="كارب (جرام)" class="px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <button onclick="addCustomMealDirectly()" class="w-full py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl hover:bg-emerald-700 transition">
+                            إضافة لسجل اليوم
+                        </button>
+                    </div>
+
+                    <!-- شريط البحث -->
+                    <div class="relative">
+                        <i class="ph ph-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                        <input type="text" id="foodSearchInput" oninput="filterFoodList()" placeholder="ابحث عن: كبسة، صدر دجاج، تمر، شوفان، بيض..." class="w-full pr-10 pl-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-emerald-500 focus:bg-white transition">
+                    </div>
+
+                    <!-- قائمة الأكلات المقترحة -->
+                    <div id="foodDatabaseList" class="max-h-56 overflow-y-auto space-y-2 pr-1">
+                        <!-- يتم تعبئتها بواسطة JS -->
+                    </div>
+
+                    <!-- بطاقة حاسبة الميزان بالجرام (تظهر عند اختيار طعام) -->
+                    <div id="scaleCalculatorCard" class="hidden bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 space-y-3 transition-all">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">حاسبة الميزان الدقيقة</span>
+                                <h4 id="selectedFoodName" class="font-extrabold text-base text-slate-800 mt-1">صدر دجاج مشوي</h4>
+                            </div>
+                            <button onclick="closeScaleCalculator()" class="text-slate-400 hover:text-slate-600 p-1">
+                                <i class="ph-bold ph-x text-lg"></i>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">الوزن على الميزان (جرام)</label>
+                                <div class="relative">
+                                    <input type="number" id="foodGramsInput" value="100" min="1" max="2000" oninput="recalculateScaleMacros()" class="w-full px-3 py-2.5 bg-white border border-emerald-300 rounded-xl font-extrabold text-slate-800 text-base focus:outline-none">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">جم</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">تصنيف الوجبة</label>
+                                <select id="mealCategorySelect" class="w-full px-3 py-2.5 bg-white border border-emerald-300 rounded-xl font-bold text-slate-700 text-sm focus:outline-none h-[46px]">
+                                    <option value="فطور">فطور</option>
+                                    <option value="غداء" selected>غداء</option>
+                                    <option value="عشاء">عشاء</option>
+                                    <option value="سناك">سناك</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- أزرار أوزان سريعة -->
+                        <div class="flex gap-1.5">
+                            <button onclick="setQuickGrams(50)" class="flex-1 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100">50g</button>
+                            <button onclick="setQuickGrams(100)" class="flex-1 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100">100g</button>
+                            <button onclick="setQuickGrams(150)" class="flex-1 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100">150g</button>
+                            <button onclick="setQuickGrams(200)" class="flex-1 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100">200g</button>
+                            <button onclick="setQuickGrams(250)" class="flex-1 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-bold text-emerald-700 hover:bg-emerald-100">250g</button>
+                        </div>
+
+                        <!-- نتيجة الحساب الفوري -->
+                        <div class="bg-white rounded-xl p-3 flex justify-around text-center border border-emerald-100">
+                            <div>
+                                <div class="text-[11px] text-slate-400">السعرات</div>
+                                <div class="font-extrabold text-emerald-600 text-base" id="calcCals">0</div>
+                            </div>
+                            <div class="border-r border-slate-100"></div>
+                            <div>
+                                <div class="text-[11px] text-slate-400">بروتين</div>
+                                <div class="font-bold text-slate-700 text-sm"><span id="calcProt">0</span>g</div>
+                            </div>
+                            <div class="border-r border-slate-100"></div>
+                            <div>
+                                <div class="text-[11px] text-slate-400">كارب</div>
+                                <div class="font-bold text-slate-700 text-sm"><span id="calcCarb">0</span>g</div>
+                            </div>
+                            <div class="border-r border-slate-100"></div>
+                            <div>
+                                <div class="text-[11px] text-slate-400">دهون</div>
+                                <div class="font-bold text-slate-700 text-sm"><span id="calcFat">0</span>g</div>
+                            </div>
+                        </div>
+
+                        <button onclick="confirmAddFoodFromScale()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="ph-bold ph-check-circle text-lg"></i> إضافة الوجبة ليومي
+                        </button>
+                    </div>
+                </div>
+
+                <!-- سجل وجبات اليوم -->
+                <div class="space-y-3">
+                    <h3 class="font-extrabold text-slate-700 text-base px-1">سجل وجبات اليوم</h3>
+                    <div id="loggedMealsContainer" class="space-y-3">
+                        <!-- يتم تعبئتها بواسطة JS -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ================= 3. تبويب النشاط والتمارين (Activity) ================= -->
+            <section id="view-activity" class="tab-view hidden space-y-5">
+                
+                <!-- بطاقة تسجيل التمارين المنزلية والرياضية -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                            <i class="ph-fill ph-fire text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-extrabold text-lg text-slate-800">تسجيل تمرين رياضي</h2>
+                            <p class="text-xs text-slate-500">اختر التمرين والمدة لحساب السعرات المحروقة</p>
+                        </div>
+                    </div>
+
+                    <!-- اختيار نوع التمرين -->
+                    <div class="grid grid-cols-2 gap-2.5" id="workoutTypesGrid">
+                        <button type="button" onclick="selectWorkoutType('مشي سريع', 5.5, this)" class="workout-btn active-workout p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-right transition flex items-center gap-2.5">
+                            <i class="ph-fill ph-person-simple-walk text-2xl text-emerald-600"></i>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">مشي سريع</div>
+                                <div class="text-[11px] text-slate-500">~5.5 سعرة/دقيقة</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="selectWorkoutType('بيلاتس / إطالة', 4.0, this)" class="workout-btn p-3 rounded-2xl border border-slate-200 bg-white text-right transition flex items-center gap-2.5">
+                            <i class="ph-fill ph-person-simple-tai-chi text-2xl text-purple-500"></i>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">بيلاتس</div>
+                                <div class="text-[11px] text-slate-500">~4.0 سعرة/دقيقة</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="selectWorkoutType('نط الحبل', 11.5, this)" class="workout-btn p-3 rounded-2xl border border-slate-200 bg-white text-right transition flex items-center gap-2.5">
+                            <i class="ph-fill ph-lightning text-2xl text-amber-500"></i>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">نط الحبل</div>
+                                <div class="text-[11px] text-slate-500">~11.5 سعرة/دقيقة</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="selectWorkoutType('تمارين مقاومة', 6.5, this)" class="workout-btn p-3 rounded-2xl border border-slate-200 bg-white text-right transition flex items-center gap-2.5">
+                            <i class="ph-fill ph-barbell text-2xl text-blue-500"></i>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">مقاومة / حديد</div>
+                                <div class="text-[11px] text-slate-500">~6.5 سعرة/دقيقة</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="selectWorkoutType('جري / كارديو', 10.0, this)" class="workout-btn col-span-2 p-3 rounded-2xl border border-slate-200 bg-white text-right transition flex items-center gap-2.5">
+                            <i class="ph-fill ph-person-simple-run text-2xl text-orange-500"></i>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">جري / كارديو منزلي</div>
+                                <div class="text-[11px] text-slate-500">~10.0 سعرة/دقيقة</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- تحديد المدة -->
+                    <div class="bg-slate-50 p-4 rounded-2xl space-y-3">
+                        <div class="flex justify-between items-center">
+                            <label class="text-sm font-bold text-slate-700">مدة التمرين (بالدقائق)</label>
+                            <span class="text-sm font-extrabold text-orange-600"><span id="workoutEstCals">165</span> سعرة محروقة</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="range" id="workoutDurationRange" min="5" max="120" step="5" value="30" oninput="updateWorkoutDuration(this.value)" class="flex-1 accent-emerald-600">
+                            <span class="w-16 text-center py-1.5 bg-white border border-slate-200 rounded-xl font-extrabold text-sm text-slate-800"><span id="workoutDurationVal">30</span> د</span>
+                        </div>
+                    </div>
+
+                    <button onclick="addWorkoutSession()" class="w-full py-3.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-bold rounded-2xl shadow-md shadow-orange-200 transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-plus-circle text-lg"></i> تسجيل التمرين
+                    </button>
+                </div>
+
+                <!-- سجل تمارين اليوم -->
+                <div class="space-y-3">
+                    <h3 class="font-extrabold text-slate-700 text-base px-1">تمارين اليوم المسجلة</h3>
+                    <div id="loggedWorkoutsContainer" class="space-y-2.5">
+                        <!-- يتم تعبئتها بواسطة JS -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ================= 4. تبويب الإحصائيات والإعدادات (Stats & Settings) ================= -->
+            <section id="view-stats" class="tab-view hidden space-y-5">
+                
+                <!-- حاسبة الاحتياج اليومي الذكية (BMR/TDEE) -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i class="ph-fill ph-calculator text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-extrabold text-lg text-slate-800">حاسبة السعرات الذكية</h2>
+                            <p class="text-xs text-slate-500">احسب احتياجك بدقة وحدّث هدفك اليومي مجاناً</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الجنس</label>
+                            <select id="calcGender" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                                <option value="female">أنثى</option>
+                                <option value="male">ذكر</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">العمر (سنة)</label>
+                            <input type="number" id="calcAge" value="25" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الوزن الحالي (كجم)</label>
+                            <input type="number" id="calcWeight" value="65" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">الطول (سم)</label>
+                            <input type="number" id="calcHeight" value="165" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">مستوى النشاط اليومي</label>
+                            <select id="calcActivity" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                                <option value="1.2">خامل (عمل مكتبي بدون رياضة)</option>
+                                <option value="1.375" selected>نشاط خفيف (مشي أو تمرين 1-3 أيام)</option>
+                                <option value="1.55">نشاط متوسط (تمرين 3-5 أيام)</option>
+                                <option value="1.725">نشاط عالي (تمرين يومي مكثف)</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-slate-600 mb-1">هدفك الصحي</label>
+                            <select id="calcGoalType" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold">
+                                <option value="-450">إنقاص الوزن بشكل صحي (عجز سعرات)</option>
+                                <option value="0" selected>المحافظة على الوزن الحالي</option>
+                                <option value="350">زيادة الوزن وبناء العضل</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="calculateAndApplyGoals()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold rounded-2xl shadow-md transition">
+                        احسب واعتمد الهدف اليومي
+                    </button>
+                </div>
+
+                <!-- قسم نموذج الربح الذكي بدون اشتراكات (متجر الأدوات المقترحة) -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-3xl p-5 shadow-md space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] bg-amber-500/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full font-bold">
+                            دعم التطبيق (تسويق بالعمولة)
+                        </span>
+                        <i class="ph-fill ph-shopping-bag-open text-amber-400 text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-base">أدوات تساعدك في رحلتك الصحية</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        هذا التطبيق مجاني بالكامل بدون اشتراكات. شراؤك للأدوات المقترحة عبر روابطنا يدعم استمرار التطبيق مجاناً للجميع:
+                    </p>
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <div class="bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/10 flex flex-col justify-between">
+                            <div>
+                                <div class="text-lg mb-1">⚖️</div>
+                                <div class="font-bold text-xs text-white">ميزان مطبخ رقمي دقيق</div>
+                                <div class="text-[11px] text-slate-300 mt-0.5">أساسي لحساب الجرامات</div>
+                            </div>
+                            <button onclick="showToast('تم فتح رابط المنتج المقترح (نموذج عمولة)', 'info')" class="mt-3 w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-extrabold text-[11px] rounded-xl transition">
+                                استعراض المنتج
+                            </button>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-sm p-3 rounded-2xl border border-white/10 flex flex-col justify-between">
+                            <div>
+                                <div class="text-lg mb-1">🪢</div>
+                                <div class="font-bold text-xs text-white">حبل قفز رياضي ذكي</div>
+                                <div class="text-[11px] text-slate-300 mt-0.5">لحرق عالي في المنزل</div>
+                            </div>
+                            <button onclick="showToast('تم فتح رابط المنتج المقترح (نموذج عمولة)', 'info')" class="mt-3 w-full py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-extrabold text-[11px] rounded-xl transition">
+                                استعراض المنتج
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- إدارة البيانات وإعادة الضبط -->
+                <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm">إدارة بيانات اليوم</h3>
+                    <p class="text-xs text-slate-500">يتم حفظ جميع وجباتك وخطواتك تلقائياً على جهازك بخصوصية تامة.</p>
+                    <button onclick="openResetModal()" class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-sm rounded-2xl transition flex items-center justify-center gap-2">
+                        <i class="ph-bold ph-arrow-counter-clockwise"></i> تصفير سجل اليوم وبداية يوم جديد
+                    </button>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- شريط التنقل السفلي (Bottom Navigation Bar) -->
+        <nav class="fixed bottom-0 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-slate-200/80 px-2 py-2 flex justify-around items-center z-40">
+            <button onclick="switchTab('home')" id="nav-home" class="nav-btn active flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl text-emerald-600 transition">
+                <i class="ph-fill ph-house text-2xl mb-0.5"></i>
+                <span class="text-[11px] font-bold">الرئيسية</span>
+            </button>
+            <button onclick="switchTab('meals')" id="nav-meals" class="nav-btn flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl text-slate-400 hover:text-slate-600 transition">
+                <i class="ph ph-fork-knife text-2xl mb-0.5"></i>
+                <span class="text-[11px] font-bold">الوجبات</span>
+            </button>
+            <button onclick="switchTab('activity')" id="nav-activity" class="nav-btn flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl text-slate-400 hover:text-slate-600 transition">
+                <i class="ph ph-sneaker-move text-2xl mb-0.5"></i>
+                <span class="text-[11px] font-bold">النشاط</span>
+            </button>
+            <button onclick="switchTab('stats')" id="nav-stats" class="nav-btn flex flex-col items-center justify-center py-1.5 px-4 rounded-2xl text-slate-400 hover:text-slate-600 transition">
+                <i class="ph ph-sliders text-2xl mb-0.5"></i>
+                <span class="text-[11px] font-bold">أهدافي</span>
+            </button>
+        </nav>
+
+        <!-- نافذة منبثقة لإدخال خطوات مخصصة -->
+        <div id="customStepsModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-5 w-full max-w-xs space-y-4 shadow-xl">
+                <h3 class="font-extrabold text-base text-slate-800">تحديث خطوات اليوم</h3>
+                <p class="text-xs text-slate-500">أدخل إجمالي خطواتك من ساعتك الذكية أو تطبيق الصحة:</p>
+                <input type="number" id="customStepsInput" placeholder="مثلاً: 6500" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-center text-lg focus:outline-none focus:border-emerald-500">
+                <div class="flex gap-2">
+                    <button onclick="closeCustomStepsModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">إلغاء</button>
+                    <button onclick="saveCustomSteps()" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold text-sm rounded-xl">حفظ</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- نافذة تأكيد تصفير اليوم (بديل confirm) -->
+        <div id="resetConfirmModal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl p-5 w-full max-w-xs space-y-4 shadow-xl text-center">
+                <div class="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto">
+                    <i class="ph-fill ph-warning-circle text-3xl"></i>
+                </div>
+                <h3 class="font-extrabold text-base text-slate-800">تصفير سجل اليوم؟</h3>
+                <p class="text-xs text-slate-500">سيتم مسح الوجبات والخطوات والتمارين المسجلة اليوم مع الاحتفاظ بأهدافك المحسوبة.</p>
+                <div class="flex gap-2">
+                    <button onclick="closeResetModal()" class="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold text-sm rounded-xl">تراجع</button>
+                    <button onclick="confirmResetDay()" class="flex-1 py-2.5 bg-red-600 text-white font-bold text-sm rounded-xl">نعم، صفّر اليوم</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- المنطق البرمجي الكامل للتطبيق -->
+    <script>
+        // ================= 1. قاعدة بيانات الأكلات المحلية والعالمية (لكل 100 جرام) =================
+        const FOOD_DATABASE = [
+            { id: 1, name: "صدر دجاج مشوي (بدون جلد)", cals: 165, prot: 31, carb: 0, fat: 3.6, icon: "🍗" },
+            { id: 2, name: "كبسة دجاج (أرز مع دجاج)", cals: 175, prot: 11, carb: 21, fat: 5.2, icon: "🥘" },
+            { id: 3, name: "أرز أبيض مطبوخ", cals: 130, prot: 2.7, carb: 28, fat: 0.3, icon: "🍚" },
+            { id: 4, name: "تمر سكري (حوالي 3-4 حبات لكل 30جم)", cals: 282, prot: 2.5, carb: 75, fat: 0.4, icon: "🌴" },
+            { id: 5, name: "بيض مسلوق", cals: 155, prot: 13, carb: 1.1, fat: 11, icon: "🥚" },
+            { id: 6, name: "خبز بر (أسمر)", cals: 247, prot: 13, carb: 41, fat: 3.4, icon: "🫓" },
+            { id: 7, name: "شوفان أبيض (جاف)", cals: 389, prot: 16.9, carb: 66, fat: 6.9, icon: "🥣" },
+            { id: 8, name: "زبادي يوناني سادة", cals: 59, prot: 10, carb: 3.6, fat: 0.4, icon: "🥛" },
+            { id: 9, name: "سمك سلمون مشوي", cals: 208, prot: 20, carb: 0, fat: 13, icon: "🐟" },
+            { id: 10, name: "لحم بقري مفروم قليل الدسم", cals: 250, prot: 26, carb: 0, fat: 15, icon: "🥩" },
+            { id: 11, name: "بطاطس مسلوقة أو مشوية", cals: 87, prot: 1.9, carb: 20, fat: 0.1, icon: "🥔" },
+            { id: 12, name: "موز طازج", cals: 89, prot: 1.1, carb: 23, fat: 0.3, icon: "🍌" },
+            { id: 13, name: "تفاح أحمر / أخضر", cals: 52, prot: 0.3, carb: 14, fat: 0.2, icon: "🍎" },
+            { id: 14, name: "زبدة فول سوداني طبيعية", cals: 588, prot: 25, carb: 20, fat: 50, icon: "🥜" },
+            { id: 15, name: "حمص مطبوخ", cals: 164, prot: 8.9, carb: 27, fat: 2.6, icon: "🧆" },
+            { id: 16, name: "جريش قمح مطبوخ", cals: 120, prot: 4.5, carb: 22, fat: 1.8, icon: "🍲" },
+            { id: 17, name: "جبن قريش قليل الدسم", cals: 98, prot: 11, carb: 3.4, fat: 4.3, icon: "🧀" },
+            { id: 18, name: "لوز نيء", cals: 579, prot: 21, carb: 22, fat: 50, icon: "🌰" },
+            { id: 19, name: "قهوة سوداء / أمريكانو (بدون سكر)", cals: 2, prot: 0.1, carb: 0, fat: 0, icon: "☕" },
+            { id: 20, name: "زيت زيتون بكر", cals: 884, prot: 0, carb: 0, fat: 100, icon: "🫒" }
+        ];
+
+        // ================= 2. حالة التطبيق (State) والحفظ المحلي =================
+        const DEFAULT_STATE = {
+            goals: {
+                calories: 2000,
+                protein: 140,
+                carbs: 210,
+                fat: 65,
+                steps: 8000
+            },
+            profile: {
+                gender: 'female',
+                age: 25,
+                weight: 65,
+                height: 165,
+                activity: 1.375,
+                goalType: 0
+            },
+            daily: {
+                steps: 0,
+                waterCups: 0,
+                meals: [],
+                workouts: []
+            }
+        };
+
+        let appState = loadState();
+        let selectedFoodItem = null;
+        let selectedWorkout = { name: 'مشي سريع', rate: 5.5, duration: 30 };
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem('tawazun_app_v1');
+                if (saved) {
+                    return { ...DEFAULT_STATE, ...JSON.parse(saved) };
+                }
+            } catch (e) {
+                console.error("Error loading state", e);
+            }
+            return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        }
+
+        function saveState() {
+            try {
+                localStorage.setItem('tawazun_app_v1', JSON.stringify(appState));
+            } catch (e) {
+                console.error("Error saving state", e);
+            }
+        }
+
+        // ================= 3. التهيئة عند فتح التطبيق =================
+        window.onload = function() {
+            // عرض التاريخ العربي الحالي
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('currentDateText').textContent = new Date().toLocaleDateString('ar-SA', options);
+
+            // تعبئة بيانات الحاسبة المحفوظة
+            document.getElementById('calcGender').value = appState.profile.gender;
+            document.getElementById('calcAge').value = appState.profile.age;
+            document.getElementById('calcWeight').value = appState.profile.weight;
+            document.getElementById('calcHeight').value = appState.profile.height;
+            document.getElementById('calcActivity').value = appState.profile.activity;
+            document.getElementById('calcGoalType').value = appState.profile.goalType;
+
+            renderFoodDatabase(FOOD_DATABASE);
+            updateAllUI();
+        };
+
+        // ================= 4. التنقل بين التبويبات =================
+        function switchTab(tabName) {
+            // إخفاء جميع الأقسام
+            document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+            // إظهار القسم المطلوب
+            document.getElementById(`view-${tabName}`).classList.remove('hidden');
+
+            // تحديث أزرار التنقل السفلية
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-emerald-600', 'active');
+                btn.classList.add('text-slate-400');
+                const icon = btn.querySelector('i');
+                if (icon) icon.className = icon.className.replace('ph-fill', 'ph');
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabName}`);
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('text-emerald-600', 'active');
+            const activeIcon = activeBtn.querySelector('i');
+            if (activeIcon) activeIcon.className = activeIcon.className.replace('ph ', 'ph-fill ');
+        }
+
+        // ================= 5. تحديث الواجهة بالكامل =================
+        function updateAllUI() {
+            // حساب إجماليات الوجبات
+            let totalEaten = 0;
+            let totalProt = 0;
+            let totalCarbs = 0;
+            let totalFat = 0;
+
+            appState.daily.meals.forEach(m => {
+                totalEaten += m.cals;
+                totalProt += m.prot;
+                totalCarbs += m.carb;
+                totalFat += m.fat;
+            });
+
+            // حساب السعرات المحروقة من الخطوات + التمارين
+            // متوسط حرق المشي: ~0.04 سعرة لكل خطوة
+            const stepsBurned = Math.round(appState.daily.steps * 0.04);
+            let workoutsBurned = 0;
+            appState.daily.workouts.forEach(w => workoutsBurned += w.cals);
+            const totalBurned = stepsBurned + workoutsBurned;
+
+            // السعرات المتبقية
+            const goalCals = appState.goals.calories;
+            const remaining = goalCals - totalEaten;
+
+            // تحديث الأرقام في لوحة التحكم
+            document.getElementById('dashEaten').textContent = Math.round(totalEaten);
+            document.getElementById('dashBurned').textContent = Math.round(totalBurned);
+            document.getElementById('dashGoalText').textContent = `الهدف: ${goalCals}`;
+
+            const remEl = document.getElementById('dashRemaining');
+            const remLabel = document.getElementById('remainingLabel');
+            const ring = document.getElementById('calorieRing');
+
+            if (remaining >= 0) {
+                remEl.textContent = Math.round(remaining);
+                remEl.classList.remove('text-red-500');
+                remEl.classList.add('text-slate-800');
+                remLabel.textContent = 'المتبقي';
+                ring.classList.remove('text-red-500');
+                ring.classList.add('text-emerald-500');
+            } else {
+                remEl.textContent = Math.abs(Math.round(remaining));
+                remEl.classList.remove('text-slate-800');
+                remEl.classList.add('text-red-500');
+                remLabel.textContent = 'تجاوزت بـ';
+                ring.classList.remove('text-emerald-500');
+                ring.classList.add('text-red-500');
+            }
+
+            // تحديث الحلقة الدائرية (محيط الدائرة = 2 * PI * 50 = 314.16)
+            const circumference = 314.16;
+            const ratio = Math.min(totalEaten / goalCals, 1);
+            const offset = circumference - (ratio * circumference);
+            ring.style.strokeDashoffset = offset;
+
+            // تحديث أشرطة الماكروز
+            document.getElementById('macroProtein').textContent = Math.round(totalProt);
+            document.getElementById('goalProtein').textContent = appState.goals.protein;
+            document.getElementById('barProtein').style.width = `${Math.min((totalProt / appState.goals.protein) * 100, 100)}%`;
+
+            document.getElementById('macroCarbs').textContent = Math.round(totalCarbs);
+            document.getElementById('goalCarbs').textContent = appState.goals.carbs;
+            document.getElementById('barCarbs').style.width = `${Math.min((totalCarbs / appState.goals.carbs) * 100, 100)}%`;
+
+            document.getElementById('macroFat').textContent = Math.round(totalFat);
+            document.getElementById('goalFat').textContent = appState.goals.fat;
+            document.getElementById('barFat').style.width = `${Math.min((totalFat / appState.goals.fat) * 100, 100)}%`;
+
+            // تحديث الخطوات
+            document.getElementById('stepsCount').textContent = appState.daily.steps.toLocaleString();
+            document.getElementById('stepsGoalDisplay').textContent = appState.goals.steps;
+            document.getElementById('stepsCalories').textContent = stepsBurned;
+            const stepsPct = Math.min((appState.daily.steps / appState.goals.steps) * 100, 100);
+            document.getElementById('stepsProgressBar').style.width = `${stepsPct}%`;
+
+            // تحديث الماء
+            renderWaterCups();
+
+            // تحديث قوائم السجلات
+            renderLoggedMeals();
+            renderLoggedWorkouts();
+        }
+
+        // ================= 6. منطق الخطوات والماء =================
+        function addSteps(amount) {
+            appState.daily.steps += amount;
+            saveState();
+            updateAllUI();
+            showToast(`تمت إضافة ${amount} خطوة! استمر 👏`, 'success');
+        }
+
+        function openCustomStepsModal() {
+            document.getElementById('customStepsInput').value = appState.daily.steps || '';
+            document.getElementById('customStepsModal').classList.remove('hidden');
+        }
+
+        function closeCustomStepsModal() {
+            document.getElementById('customStepsModal').classList.add('hidden');
+        }
+
+        function saveCustomSteps() {
+            const val = parseInt(document.getElementById('customStepsInput').value);
+            if (!isNaN(val) && val >= 0) {
+                appState.daily.steps = val;
+                saveState();
+                updateAllUI();
+                closeCustomStepsModal();
+                showToast('تم تحديث عداد الخطوات بنجاح', 'success');
+            }
+        }
+
+        function renderWaterCups() {
+            const grid = document.getElementById('waterCupsGrid');
+            grid.innerHTML = '';
+            const totalCups = 8;
+            const current = appState.daily.waterCups;
+
+            document.getElementById('waterLiters').textContent = (current * 0.25).toFixed(2);
+
+            for (let i = 1; i <= totalCups; i++) {
+                const isFilled = i <= current;
+                const btn = document.createElement('button');
+                btn.onclick = () => toggleWaterCup(i);
+                btn.className = `h-10 rounded-xl flex items-center justify-center transition active:scale-90 ${
+                    isFilled 
+                    ? 'bg-sky-500 text-white shadow-sm shadow-sky-200' 
+                    : 'bg-sky-50 text-sky-300 hover:bg-sky-100'
+                }`;
+                btn.innerHTML = `<i class="${isFilled ? 'ph-fill' : 'ph'} ph-drop text-lg"></i>`;
+                grid.appendChild(btn);
+            }
+        }
+
+        function toggleWaterCup(cupIndex) {
+            if (appState.daily.waterCups === cupIndex) {
+                appState.daily.waterCups = cupIndex - 1;
+            } else {
+                appState.daily.waterCups = cupIndex;
+            }
+            saveState();
+            updateAllUI();
+        }
+
+        // ================= 7. منطق الوجبات وحاسبة الميزان =================
+        function renderFoodDatabase(list) {
+            const container = document.getElementById('foodDatabaseList');
+            container.innerHTML = '';
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="text-center py-4 text-xs text-slate-400">لا توجد نتائج مطابقة، يمكنك إضافتها كوجبة مخصصة بالأعلى.</div>`;
+                return;
+            }
+
+            list.forEach(item => {
+                const div = document.createElement('div');
+                div.onclick = () => openScaleCalculator(item);
+                div.className = 'p-3 bg-slate-50 hover:bg-emerald-50/70 border border-slate-100 hover:border-emerald-200 rounded-2xl flex justify-between items-center cursor-pointer transition';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">${item.icon}</span>
+                        <div>
+                            <div class="font-bold text-sm text-slate-800">${item.name}</div>
+                            <div class="text-[11px] text-slate-500">لكل 100جم: ${item.cals} سعرة • ${item.prot}g بروتين</div>
+                        </div>
+                    </div>
+                    <span class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-emerald-600">
+                        <i class="ph-bold ph-scales"></i>
+                    </span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function filterFoodList() {
+            const query = document.getElementById('foodSearchInput').value.trim().toLowerCase();
+            const filtered = FOOD_DATABASE.filter(f => f.name.toLowerCase().includes(query));
+            renderFoodDatabase(filtered);
+        }
+
+        function openScaleCalculator(item) {
+            selectedFoodItem = item;
+            document.getElementById('selectedFoodName').textContent = `${item.icon} ${item.name}`;
+            document.getElementById('foodGramsInput').value = 100;
+            document.getElementById('scaleCalculatorCard').classList.remove('hidden');
+            recalculateScaleMacros();
+            // تمرير ناعم لحاسبة الميزان
+            document.getElementById('scaleCalculatorCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function closeScaleCalculator() {
+            selectedFoodItem = null;
+            document.getElementById('scaleCalculatorCard').classList.add('hidden');
+        }
+
+        function setQuickGrams(grams) {
+            document.getElementById('foodGramsInput').value = grams;
+            recalculateScaleMacros();
+        }
+
+        function recalculateScaleMacros() {
+            if (!selectedFoodItem) return;
+            const grams = parseFloat(document.getElementById('foodGramsInput').value) || 0;
+            const factor = grams / 100;
+
+            document.getElementById('calcCals').textContent = Math.round(selectedFoodItem.cals * factor);
+            document.getElementById('calcProt').textContent = (selectedFoodItem.prot * factor).toFixed(1);
+            document.getElementById('calcCarb').textContent = (selectedFoodItem.carb * factor).toFixed(1);
+            document.getElementById('calcFat').textContent = (selectedFoodItem.fat * factor).toFixed(1);
+        }
+
+        function confirmAddFoodFromScale() {
+            if (!selectedFoodItem) return;
+            const grams = parseFloat(document.getElementById('foodGramsInput').value) || 0;
+            if (grams <= 0) {
+                showToast('يرجى إدخال وزن صحيح بالجرام', 'error');
+                return;
+            }
+
+            const factor = grams / 100;
+            const category = document.getElementById('mealCategorySelect').value;
+
+            const newMeal = {
+                id: Date.now(),
+                name: `${selectedFoodItem.name} (${grams}جم)`,
+                category: category,
+                cals: Math.round(selectedFoodItem.cals * factor),
+                prot: parseFloat((selectedFoodItem.prot * factor).toFixed(1)),
+                carb: parseFloat((selectedFoodItem.carb * factor).toFixed(1)),
+                fat: parseFloat((selectedFoodItem.fat * factor).toFixed(1)),
+                icon: selectedFoodItem.icon
+            };
+
+            appState.daily.meals.unshift(newMeal);
+            saveState();
+            updateAllUI();
+            closeScaleCalculator();
+            showToast(`تمت إضافة ${newMeal.name} إلى ${category}`, 'success');
+        }
+
+        function toggleCustomFoodForm() {
+            const form = document.getElementById('customFoodForm');
+            form.classList.toggle('hidden');
+        }
+
+        function addCustomMealDirectly() {
+            const name = document.getElementById('custName').value.trim();
+            const category = document.getElementById('custCategory').value;
+            const cals = parseFloat(document.getElementById('custCals').value) || 0;
+            const prot = parseFloat(document.getElementById('custProt').value) || 0;
+            const carb = parseFloat(document.getElementById('custCarb').value) || 0;
+
+            if (!name || cals <= 0) {
+                showToast('أدخل اسم الوجبة والسعرات الحرارية', 'error');
+                return;
+            }
+
+            appState.daily.meals.unshift({
+                id: Date.now(),
+                name: name,
+                category: category,
+                cals: Math.round(cals),
+                prot: prot,
+                carb: carb,
+                fat: 0,
+                icon: "🍽️"
+            });
+
+            // تفريغ الحقول
+            document.getElementById('custName').value = '';
+            document.getElementById('custCals').value = '';
+            document.getElementById('custProt').value = '';
+            document.getElementById('custCarb').value = '';
+            toggleCustomFoodForm();
+
+            saveState();
+            updateAllUI();
+            showToast('تمت إضافة الوجبة المخصصة بنجاح', 'success');
+        }
+
+        function deleteMeal(id) {
+            appState.daily.meals = appState.daily.meals.filter(m => m.id !== id);
+            saveState();
+            updateAllUI();
+            showToast('تم حذف الوجبة', 'info');
+        }
+
+        function renderLoggedMeals() {
+            const container = document.getElementById('loggedMealsContainer');
+            container.innerHTML = '';
+
+            if (appState.daily.meals.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-3xl p-6 text-center border border-slate-100">
+                        <div class="text-3xl mb-2">🥗</div>
+                        <p class="text-sm font-bold text-slate-600">لم تسجل أي وجبة اليوم بعد</p>
+                        <p class="text-xs text-slate-400 mt-1">اختر أكلة من القائمة بالأعلى وحدد وزنها بالجرام</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appState.daily.meals.forEach(meal => {
+                const card = document.createElement('div');
+                card.className = 'bg-white p-4 rounded-2xl shadow-xs border border-slate-100 flex justify-between items-center';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-xl">${meal.icon || '🍽️'}</div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700">${meal.category}</span>
+                                <h4 class="font-bold text-sm text-slate-800">${meal.name}</h4>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">
+                                <span class="font-extrabold text-emerald-600">${meal.cals} سعرة</span> • بروتين ${meal.prot}g • كارب ${meal.carb}g
+                            </p>
+                        </div>
+                    </div>
+                    <button onclick="deleteMeal(${meal.id})" class="p-2 text-slate-400 hover:text-red-500 transition" title="حذف">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // ================= 8. منطق التمارين والنشاط =================
+        function selectWorkoutType(name, rate, btnEl) {
+            selectedWorkout.name = name;
+            selectedWorkout.rate = rate;
+
+            document.querySelectorAll('.workout-btn').forEach(b => {
+                b.classList.remove('border-2', 'border-emerald-500', 'bg-emerald-50');
+                b.classList.add('border', 'border-slate-200', 'bg-white');
+            });
+
+            btnEl.classList.remove('border', 'border-slate-200', 'bg-white');
+            btnEl.classList.add('border-2', 'border-emerald-500', 'bg-emerald-50');
+
+            updateWorkoutDuration(selectedWorkout.duration);
+        }
+
+        function updateWorkoutDuration(mins) {
+            selectedWorkout.duration = parseInt(mins);
+            document.getElementById('workoutDurationVal').textContent = mins;
+            const est = Math.round(selectedWorkout.duration * selectedWorkout.rate);
+            document.getElementById('workoutEstCals').textContent = est;
+        }
+
+        function addWorkoutSession() {
+            const burned = Math.round(selectedWorkout.duration * selectedWorkout.rate);
+            appState.daily.workouts.unshift({
+                id: Date.now(),
+                name: selectedWorkout.name,
+                duration: selectedWorkout.duration,
+                cals: burned
+            });
+            saveState();
+            updateAllUI();
+            showToast(`عاش! تم تسجيل ${selectedWorkout.duration} دقيقة ${selectedWorkout.name}`, 'success');
+        }
+
+        function deleteWorkout(id) {
+            appState.daily.workouts = appState.daily.workouts.filter(w => w.id !== id);
+            saveState();
+            updateAllUI();
+        }
+
+        function renderLoggedWorkouts() {
+            const container = document.getElementById('loggedWorkoutsContainer');
+            container.innerHTML = '';
+
+            if (appState.daily.workouts.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-3xl p-6 text-center border border-slate-100">
+                        <p class="text-xs text-slate-400">لا توجد تمارين مسجلة اليوم. ابدأ بـ 15 دقيقة مشي أو بيلاتس!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            appState.daily.workouts.forEach(w => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center';
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                            <i class="ph-fill ph-fire text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-sm text-slate-800">${w.name}</h4>
+                            <p class="text-xs text-slate-500">المدة: ${w.duration} دقيقة • حرق <span class="font-bold text-orange-500">${w.cals} سعرة</span></p>
+                        </div>
+                    </div>
+                    <button onclick="deleteWorkout(${w.id})" class="p-2 text-slate-400 hover:text-red-500 transition">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // ================= 9. حاسبة الاحتياج اليومي وإدارة البيانات =================
+        function calculateAndApplyGoals() {
+            const gender = document.getElementById('calcGender').value;
+            const age = parseFloat(document.getElementById('calcAge').value) || 25;
+            const weight = parseFloat(document.getElementById('calcWeight').value) || 65;
+            const height = parseFloat(document.getElementById('calcHeight').value) || 165;
+            const activity = parseFloat(document.getElementById('calcActivity').value) || 1.375;
+            const goalAdj = parseFloat(document.getElementById('calcGoalType').value) || 0;
+
+            // معادلة Mifflin-St Jeor الدقيقة
+            let bmr = (10 * weight) + (6.25 * height) - (5 * age);
+            bmr += (gender === 'male') ? 5 : -161;
+
+            let targetCals = Math.round((bmr * activity) + goalAdj);
+            if (targetCals < 1200) targetCals = 1200; // حد أمان صحي
+
+            // توزيع الماكروز المتوازن (30% بروتين، 45% كارب، 25% دهون)
+            const proteinGrams = Math.round((targetCals * 0.30) / 4);
+            const carbsGrams = Math.round((targetCals * 0.45) / 4);
+            const fatGrams = Math.round((targetCals * 0.25) / 9);
+
+            appState.profile = { gender, age, weight, height, activity, goalType: goalAdj };
+            appState.goals.calories = targetCals;
+            appState.goals.protein = proteinGrams;
+            appState.goals.carbs = carbsGrams;
+            appState.goals.fat = fatGrams;
+
+            saveState();
+            updateAllUI();
+            switchTab('home');
+            showToast(`تم تحديث هدفك اليومي إلى ${targetCals} سعرة!`, 'success');
+        }
+
+        function openResetModal() {
+            document.getElementById('resetConfirmModal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('resetConfirmModal').classList.add('hidden');
+        }
+
+        function confirmResetDay() {
+            appState.daily = { steps: 0, waterCups: 0, meals: [], workouts: [] };
+            saveState();
+            updateAllUI();
+            closeResetModal();
+            switchTab('home');
+            showToast('تم تصفير اليوم بنجاح، بداية موفقة!', 'info');
+        }
+
+        // ================= 10. نظام الإشعارات الأنيق (Toast) =================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const colors = {
+                success: 'bg-slate-800 text-white border-emerald-500',
+                error: 'bg-red-600 text-white border-red-400',
+                info: 'bg-slate-700 text-white border-slate-500'
+            };
+
+            toast.className = `${colors[type]} px-4 py-3 rounded-2xl shadow-lg border-r-4 text-xs font-bold flex items-center justify-between transition-all duration-300 transform translate-y-0 opacity-100`;
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2600);
+        }
+    </script>
+</body>
+</html>
