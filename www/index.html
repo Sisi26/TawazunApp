@@ -197,6 +197,12 @@
                     <div class="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
                         <div id="stepsProgressBar" class="bg-gradient-to-l from-orange-500 to-amber-400 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
                     </div>
+                           <!-- أزرار إضافة خطوات سريعة -->
+                            <div class="flex items-center justify-between text-xs text-slate-600 mb-3">
+  <span>المشي: <strong id="walkedSteps" class="text-slate-800">0</strong></span>
+  <span>المتبقي: <strong id="remainingSteps" class="text-slate-800">8,000</strong></span>
+  <span>الإنجاز: <strong id="stepsPercent" class="text-slate-800">0%</strong></span>
+</div>
 
                     <!-- أزرار إضافة خطوات سريعة -->
                     <div class="flex gap-2">
@@ -1191,7 +1197,23 @@
                 toast.style.transform = 'translateY(-10px)';
                 setTimeout(() => toast.remove(), 300);
             }, 2600);
+            function updateStepsSummaryUI() {
+  const walkedEl = document.getElementById("walkedSteps");
+  const remainingEl = document.getElementById("remainingSteps");
+  const percentEl = document.getElementById("stepsPercent");
+  if (!walkedEl || !remainingEl || !percentEl) return;
+
+  const currentSteps = Number(document.getElementById("stepsCount")?.textContent.replace(/,/g, "")) || 0;
+  const goalSteps = Number(document.getElementById("stepsGoalDisplay")?.textContent.replace(/,/g, "")) || 8000;
+  const remaining = Math.max(0, goalSteps - currentSteps);
+  const percent = Math.round((currentSteps / Math.max(1, goalSteps)) * 100);
+
+  walkedEl.textContent = currentSteps.toLocaleString();
+  remainingEl.textContent = remaining.toLocaleString();
+  percentEl.textContent = `${percent}%`;
+}
         }
+        updateStepsSummaryUI();
     </script>
 </body>
 </html>
